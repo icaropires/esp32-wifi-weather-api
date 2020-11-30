@@ -1,0 +1,37 @@
+menu "Setup Wi-Fi"
+
+    config ESP_WIFI_SSID
+        string "WiFi SSID"
+        default "ssid"
+        help
+            The "name" of the network.
+
+    config ESP_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default "minha_senha"
+        help
+            The password to connect with the network with the chosen SSID.
+
+    config ESP_MAXIMUM_RETRY
+        int "Maximum connection attempts"
+        default 5
+        help
+            How much times to try to connect to the network in case of failures.
+
+endmenu
+
+menu "APIs credentials"
+
+    config ESP_IPSTACK_KEY
+        string "IP stack key"
+        default ""
+        help
+            The "access_key" to use o access api.ipstack.com
+
+    config ESP_OPENWEATHER_KEY
+        string "Open Weather key"
+        default ""
+        help
+            The "appid" to access api.openweathermap.org.
+
+endmenu
