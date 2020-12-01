@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "http_client.h"
 
 #include "esp_event.h"
@@ -6,7 +8,7 @@
 #include "esp_log.h"
 #include "esp_tls.h"
 
-#include <string.h>
+#include "led.h"
 
 #define MAX_HTTP_OUTPUT_BUFFER 512
 
@@ -77,6 +79,8 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 }
 
 void http_get_json(char *host, char *path, char *query, char *result){
+    led_blink(true);
+
     char local_response_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
 
     esp_http_client_config_t config = {

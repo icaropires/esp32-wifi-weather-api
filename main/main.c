@@ -6,10 +6,13 @@
 #include "esp_http_client.h"
 #include "esp_log.h"
 #include "freertos/semphr.h"
+#include "freertos/FreeRTOSConfig.h"
+
+#include "cJSON.h"
 
 #include "wifi.h"
 #include "http_client.h"
-#include "cJSON.h"
+#include "led.h"
 
 #define MAX_QUERY_SIZE 180
 #define JSON_MAX_SIZE 600
@@ -17,45 +20,48 @@
 #define IPSTACK_KEY CONFIG_ESP_IPSTACK_KEY
 #define OPENWEATHER_KEY CONFIG_ESP_OPENWEATHER_KEY
 
-xSemaphoreHandle connectionWifiSemaphore;
+xSemaphoreHandle connection_wifi_sem;
+xSemaphoreHandle is_led_setup_sem;
 
-void RealizaHTTPRequest(void * params)
-{
-    while(true)
-    {
-        if(xSemaphoreTake(connectionWifiSemaphore, portMAX_DELAY))
-        {
-            char query[MAX_QUERY_SIZE] = {0};
-            char response_json[JSON_MAX_SIZE] = {0};
+void show_weather(void * params) {
+    xSemaphoreTake(connection_wifi_sem, portMAX_DELAY);
 
-            sprintf(query, "access_key=%s&fields=main.latitude,main.longitude", IPSTACK_KEY);
+    while(true) {
+        char query[MAX_QUERY_SIZE] = {0};
+        char response_json[JSON_MAX_SIZE] = {0};
 
-            http_get_json("api.ipstack.com", "/check", query, response_json);
+        sprintf(query, "access_key=%s&fields=main.latitude,main.longitude", IPSTACK_KEY);
 
-            cJSON *location_info = cJSON_Parse(response_json);
+        http_get_json("api.ipstack.com", "/check", query, response_json);
 
-            double latitude = cJSON_GetObjectItem(location_info, "latitude")->valuedouble;
-            double longitude = cJSON_GetObjectItem(location_info, "longitude")->valuedouble;
+        cJSON *location_info = cJSON_Parse(response_json);
 
-            sprintf(query, "lat=%lf&lon=%lf&appid=%s&units=metric", latitude, longitude, OPENWEATHER_KEY);
+        double latitude = cJSON_GetObjectItem(location_info, "latitude")->valuedouble;
+        double longitude = cJSON_GetObjectItem(location_info, "longitude")->valuedouble;
 
-            http_get_json("api.openweathermap.org", "/data/2.5/weather", query, response_json);
+        sprintf(query, "lat=%lf&lon=%lf&appid=%s&units=metric", latitude, longitude, OPENWEATHER_KEY);
 
-            cJSON *weather_info = cJSON_Parse(response_json);
+        http_get_json("api.openweathermap.org", "/data/2.5/weather", query, response_json);
 
-            cJSON *main_info = cJSON_GetObjectItem(weather_info, "main");
+        cJSON *weather_info = cJSON_Parse(response_json);
 
-            double temp = cJSON_GetObjectItem(main_info, "temp")->valuedouble;
-            double temp_min = cJSON_GetObjectItem(main_info, "temp_min")->valuedouble;
-            double temp_max = cJSON_GetObjectItem(main_info, "temp_max")->valuedouble;
-            double humidity = cJSON_GetObjectItem(main_info, "humidity")->valuedouble;
+        cJSON *main_info = cJSON_GetObjectItem(weather_info, "main");
 
-            printf("\nCurrent temperature = %0.2lfº\n"
-                   "Minimum temperature = %0.2lfº\n"
-                   "Maximum temperature = %0.2lfº\n"
-                   "Humidity = %0.2lf %%\n"
-                   , temp, temp_min, temp_max, humidity);
-        }
+        double temp = cJSON_GetObjectItem(main_info, "temp")->valuedouble;
+        double temp_min = cJSON_GetObjectItem(main_info, "temp_min")->valuedouble;
+        double temp_max = cJSON_GetObjectItem(main_info, "temp_max")->valuedouble;
+        double humidity = cJSON_GetObjectItem(main_info, "humidity")->valuedouble;
+
+        printf("\nCurrent temperature = %0.2lfº\n"
+                "Minimum temperature = %0.2lfº\n"
+                "Maximum temperature = %0.2lfº\n"
+                "Humidity = %0.2lf %%\n"
+                , temp, temp_min, temp_max, humidity);
+
+
+        TickType_t requests_interval = 5 * 60 * 1000 / portTICK_PERIOD_MS;
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -68,8 +74,11 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    connectionWifiSemaphore = xSemaphoreCreateBinary();
-    wifi_start();
+    connection_wifi_sem = xSemaphoreCreateBinary();
+    is_led_setup_sem = xSemaphoreCreateBinary();
 
-    xTaskCreate(&RealizaHTTPRequest,  "Processa HTTP", 4096, NULL, 1, NULL);
+    xTaskCreate(&led_start, "Controls the blue LED", 4096, NULL, 2, NULL);
+    xTaskCreate(&show_weather,  "Shows weather information periodically", 4096, NULL, 1, NULL);
+
+    wifi_start();
 }
