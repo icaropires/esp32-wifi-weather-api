@@ -11,13 +11,6 @@ menu "Setup Wi-Fi"
         default "minha_senha"
         help
             The password to connect with the network with the chosen SSID.
-
-    config ESP_MAXIMUM_RETRY
-        int "Maximum connection attempts"
-        default 5
-        help
-            How much times to try to connect to the network in case of failures.
-
 endmenu
 
 menu "APIs credentials"
