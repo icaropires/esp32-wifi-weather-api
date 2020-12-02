@@ -12,6 +12,8 @@ void fetch_coordinates(double *latitude, double *longitude) {
 
     *latitude = cJSON_GetObjectItem(location_info, "latitude")->valuedouble;
     *longitude = cJSON_GetObjectItem(location_info, "longitude")->valuedouble;
+
+    cJSON_Delete(location_info);
 }
 
 void fetch_weather(double latitude, double longitude, double *temp, double *temp_min, double *temp_max, double *humidity) {
@@ -30,4 +32,6 @@ void fetch_weather(double latitude, double longitude, double *temp, double *temp
     *temp_min = cJSON_GetObjectItem(main_info, "temp_min")->valuedouble;
     *temp_max = cJSON_GetObjectItem(main_info, "temp_max")->valuedouble;
     *humidity = cJSON_GetObjectItem(main_info, "humidity")->valuedouble;
+
+    cJSON_Delete(weather_info);
 }

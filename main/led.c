@@ -57,7 +57,7 @@ void led_start() {
                 break;
 
             case LED_STATE_BLINK_FAST:
-                blink_interval = 100 / portTICK_PERIOD_MS;
+                blink_interval = 200 / portTICK_PERIOD_MS;
                 // fall through
 
             case LED_STATE_BLINK_CONTINUOUS:
